@@ -3,6 +3,15 @@ import openai
 import json
 import os
 
+def highlight_quotes(journal_entry, thinking_patterns):
+    for pattern, details in thinking_patterns.items():
+        for detail in details:
+            quote = detail["quote"]
+            explanation = detail["explanation"]
+            highlighted = f'<span style="background-color: yellow;" title="{explanation}">{quote}</span>'
+            journal_entry = journal_entry.replace(quote, highlighted)
+    return journal_entry
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 st.title("Thought Checker App")
@@ -208,6 +217,7 @@ if st.button("Check Thought Patterns"):
         if response_message.get("function_call"):
             thinking_patterns = json.loads(response_message["function_call"]["arguments"])
 
-        st.write(thinking_patterns)
+        highlighted_entry = highlight_quotes(journal_entry, thinking_patterns)
+        st.markdown(highlighted_entry, unsafe_allow_html=True)
     else:
         st.warning("Please enter a journal entry before submitting.")
