@@ -3,12 +3,28 @@ import openai
 import json
 import os
 
+pattern_color_map = {
+    "Black or white thinking": "#FFD1DC",   # Pastel Pink
+    "Overgeneralisation": "#FFD1A1",        # Pastel Orange
+    "Mental filter": "#FFFFA1",             # Pastel Yellow
+    "Discounting the positives": "#A1FFA1", # Pastel Green
+    "Mind reading": "#A1FFFF",              # Pastel Blue
+    "Fortune telling": "#D1A1FF",           # Pastel Purple
+    "Catastrophising": "#D3D3D3",           # Pastel Grey
+    "Emotional reasoning": "#A1FFD1",       # Pastel Cyan
+    "Should statements": "#FFA1FF",         # Pastel Magenta
+    "Labelling": "#D2B48C",                 # Pastel Brown
+    "Blame": "#C0FF3E"                      # Pastel Lime
+}
+
+# Function to highlight quotes in journal entry
 def highlight_quotes(journal_entry, thinking_patterns):
     for pattern, details in thinking_patterns.items():
         for detail in details:
             quote = detail["quote"]
             explanation = detail["explanation"]
-            highlighted = f'<span style="background-color: yellow;" title="{explanation}">{quote}</span>'
+            color = pattern_color_map.get(pattern, "#D3D3D3")  # Default to Pastel Grey (#D3D3D3) if pattern not in color map
+            highlighted = f'<span style="background-color: {color};" title="{explanation}">{quote}</span>'
             journal_entry = journal_entry.replace(quote, highlighted)
     return journal_entry
 
