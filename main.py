@@ -67,7 +67,7 @@ tooltip_style = '''
 </style>
 '''
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.title("Thought Checker")
 st.markdown("This thought checker will spot unhelpful thinking patterns ([cognitive distortions](https://in.nau.edu/wp-content/uploads/sites/202/Cog.-Distortions.pdf)) in your journal entries for you, so you can focus on the most helpful step: reframing 😭 ➡️ 💪🥰")
