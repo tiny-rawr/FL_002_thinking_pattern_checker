@@ -39,6 +39,10 @@ tooltip_style = '''
   display: inline-block;
 }
 
+.tooltip span {
+  display: inline;
+}
+
 .tooltip .tooltiptext {
   visibility: hidden;
   width: 300px;
@@ -74,7 +78,6 @@ journal_entry = st.text_area("Journal entry:", max_chars=2000, height=300)
 # Submit button
 if st.button("Check Thought Patterns"):
     if journal_entry:
-        start_time = time.time()
         st.info("Journal analysis started. This may take 60-120 seconds to complete.")
 
         completion = openai.ChatCompletion.create(
