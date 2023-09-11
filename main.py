@@ -1,8 +1,8 @@
 import streamlit as st
-import openai
 import json
 from collections import Counter
 from config import pattern_color_map, tooltip_style
+from openai_api import get_distortions, categorise_distortions
 
 def highlight_quotes(entry_text, pattern_information):
     processed_entry = entry_text  # Copy of the original entry text
@@ -16,7 +16,6 @@ def highlight_quotes(entry_text, pattern_information):
     return processed_entry
 
 
-openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.title("Thought Checker")
 st.markdown(
@@ -31,31 +30,7 @@ if st.button("Check Thought Patterns"):
     if journal_entry:
         st.info("Journal analysis started. This may take 60-120 seconds to complete.")
 
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system",
-                 "content": "You are a helpful assistant who goes through each sentence and extracts every single example of cognitive distortions present in a journal entry. Use direct quotes."},
-                {"role": "user", "content": journal_entry}
-            ],
-            functions=[{
-                "name": "identify_cognitive_distortions",
-                "description": "Identifies all cognitive distortion present in a journal entry",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "quotes": {
-                            "type": "array",
-                            "items": {
-                                "type": "string",
-                                "description": "A direct quote from the journal entry that represents a cognitive distortion"
-                            }
-                        }
-                    },
-                    "required": ["quotes"]
-                }
-            }]
-        )
+        completion = get_distortions(journal_entry)
 
         response_message = completion["choices"][0]["message"]
         if response_message.get("function_call"):
@@ -67,50 +42,7 @@ if st.button("Check Thought Patterns"):
             st.success("No cognitive distortions present in the journal entry.")
         else:
             # Second API call
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system",
-                     "content": "You are a helpful assistant who categorizes cognitive distortions and explains why they are an example of that cognitive distortion"},
-                    {"role": "user", "content": str(quotes)}
-                ],
-                functions=[
-                    {
-                        "name": "identify_cognitive_distortions",
-                        "description": "Categorizes quotes by cognitive distortions and explains why each quote is an example of that thinking pattern.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "thinking patterns": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "quote": {
-                                                "type": "string",
-                                                "description": "A direct quote from the journal entry that most represents this thinking pattern"
-                                            },
-                                            "thinking pattern": {
-                                                "type": "string",
-                                                "enum": ["Black or white thinking", "Overgeneralisation", "Labelling",
-                                                         "Fortune telling", "Mind reading", "Blaming",
-                                                         "Catastrophising",
-                                                         "Discounting the positives", "Emotional reasoning"]
-                                            },
-                                            "explanation": {
-                                                "type": "string",
-                                                "description": "Explain why this is an example of the thinking pattern."
-                                            }
-                                        },
-                                        "required": ["quote", "thinking pattern", "explanation"]
-                                    }
-                                }
-                            },
-                            "required": ["thinking patterns"]
-                        }
-                    }
-                ]
-            )
+            completion = categorise_distortions(quotes)
 
             response_message = completion["choices"][0]["message"]
             if response_message.get("function_call"):
