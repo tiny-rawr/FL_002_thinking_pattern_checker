@@ -1,9 +1,7 @@
 import streamlit as st
 import openai
 import json
-import os
 from collections import Counter
-
 
 pattern_color_map = {
     "Black or white thinking": "#FFD1DC",  # Pastel Pink
@@ -70,10 +68,12 @@ tooltip_style = '''
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.title("Thought Checker")
-st.markdown("This thought checker will spot unhelpful thinking patterns ([cognitive distortions](https://in.nau.edu/wp-content/uploads/sites/202/Cog.-Distortions.pdf)) in your journal entries for you, so you can focus on the most helpful step: reframing 😭 ➡️ 💪🥰")
-st.markdown("To learn how to leverage genAI to build use-cases like this, sign up to the [fairylights newsletter](https://fairylightsai.substack.com) 💌 & connect on [LinkedIn](https://www.linkedin.com/in/becca9941/) 🥰")
+st.markdown(
+    "This thought checker will spot unhelpful thinking patterns ([cognitive distortions](https://in.nau.edu/wp-content/uploads/sites/202/Cog.-Distortions.pdf)) in your journal entries for you, so you can focus on the most helpful step: reframing 😭 ➡️ 💪🥰")
+st.markdown(
+    "To learn how to leverage genAI to build use-cases like this, sign up to the [fairylights newsletter](https://fairylightsai.substack.com) 💌 & connect on [LinkedIn](https://www.linkedin.com/in/becca9941/) 🥰")
 journal_entry = st.text_area("Journal entry:", max_chars=2000, height=300)
-
+data = {}
 
 # Submit button
 if st.button("Check Thought Patterns"):
@@ -110,72 +110,76 @@ if st.button("Check Thought Patterns"):
         if response_message.get("function_call"):
             data = json.loads(response_message["function_call"]["arguments"])
 
-        quotes = data['quotes']
+        quotes = data.get('quotes', [])
 
-        # Step 2: Categorize quotes by cognitive distortions and explain why each quote is an example of that thinking pattern
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system",
-                 "content": "You are a helpful assistant who categorizes cognitive distortions and explains why they are an example of that cognitive distortion"},
-                {"role": "user", "content": str(quotes)}
-            ],
-            functions=[
-                {
-                    "name": "identify_cognitive_distortions",
-                    "description": "Categorizes quotes by cognitive distortions and explains why each quote is an example of that thinking pattern.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "thinking patterns": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "quote": {
-                                            "type": "string",
-                                            "description": "A direct quote from the journal entry that most represents this thinking pattern"
+        if not quotes:
+            st.success("No cognitive distortions present in the journal entry.")
+        else:
+            # Second API call
+            completion = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system",
+                     "content": "You are a helpful assistant who categorizes cognitive distortions and explains why they are an example of that cognitive distortion"},
+                    {"role": "user", "content": str(quotes)}
+                ],
+                functions=[
+                    {
+                        "name": "identify_cognitive_distortions",
+                        "description": "Categorizes quotes by cognitive distortions and explains why each quote is an example of that thinking pattern.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "thinking patterns": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "quote": {
+                                                "type": "string",
+                                                "description": "A direct quote from the journal entry that most represents this thinking pattern"
+                                            },
+                                            "thinking pattern": {
+                                                "type": "string",
+                                                "enum": ["Black or white thinking", "Overgeneralisation", "Labelling",
+                                                         "Fortune telling", "Mind reading", "Blaming",
+                                                         "Catastrophising",
+                                                         "Discounting the positives", "Emotional reasoning"]
+                                            },
+                                            "explanation": {
+                                                "type": "string",
+                                                "description": "Explain why this is an example of the thinking pattern."
+                                            }
                                         },
-                                        "thinking pattern": {
-                                            "type": "string",
-                                            "enum": ["Black or white thinking", "Overgeneralisation", "Labelling",
-                                                     "Fortune telling", "Mind reading", "Blaming", "Catastrophising",
-                                                     "Discounting the positives", "Emotional reasoning"]
-                                        },
-                                        "explanation": {
-                                            "type": "string",
-                                            "description": "Explain why this is an example of the thinking pattern."
-                                        }
-                                    },
-                                    "required": ["quote", "thinking pattern", "explanation"]
+                                        "required": ["quote", "thinking pattern", "explanation"]
+                                    }
                                 }
-                            }
-                        },
-                        "required": ["thinking patterns"]
+                            },
+                            "required": ["thinking patterns"]
+                        }
                     }
-                }
-            ]
-        )
+                ]
+            )
 
-        response_message = completion["choices"][0]["message"]
-        if response_message.get("function_call"):
-            data = json.loads(response_message["function_call"]["arguments"])
+            response_message = completion["choices"][0]["message"]
+            if response_message.get("function_call"):
+                data = json.loads(response_message["function_call"]["arguments"])
 
-        thinking_patterns = data['thinking patterns']
+            thinking_patterns = data['thinking patterns']
 
-        pattern_counter = Counter([pattern_info['thinking pattern'] for pattern_info in thinking_patterns])
+            pattern_counter = Counter([pattern_info['thinking pattern'] for pattern_info in thinking_patterns])
 
-        # Generate and display the table with colored cells
-        table_html = '<table style="width:100%"><thead><tr><th>Pattern</th><th>Count</th></tr></thead><tbody>'
-        table_html += ''.join(
-            f'<tr><td style="background-color:{pattern_color_map.get(pattern, "#FFF")}">{pattern}</td><td>{count}</td></tr>'
-            for pattern, count in pattern_counter.items())
-        table_html += '</tbody></table>'
-        st.markdown(table_html, unsafe_allow_html=True)
+            # Generate and display the table with colored cells
+            table_html = '<table style="width:100%"><thead><tr><th>Pattern</th><th>Count</th></tr></thead><tbody>'
+            table_html += ''.join(
+                f'<tr><td style="background-color:{pattern_color_map.get(pattern, "#FFF")}">{pattern}</td><td>{count}</td></tr>'
+                for pattern, count in pattern_counter.items())
+            table_html += '</tbody></table>'
+            st.markdown(table_html, unsafe_allow_html=True)
 
-        entry_with_highlights = highlight_quotes(journal_entry, thinking_patterns)
-        st.markdown(tooltip_style, unsafe_allow_html=True)  # Add the tooltip style
-        st.markdown(entry_with_highlights, unsafe_allow_html=True)
+            entry_with_highlights = highlight_quotes(journal_entry, thinking_patterns)
+            st.markdown(tooltip_style, unsafe_allow_html=True)  # Add the tooltip style
+            st.markdown(entry_with_highlights, unsafe_allow_html=True)
 
     else:
         st.warning("Please enter a journal entry before submitting.")
