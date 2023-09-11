@@ -30,9 +30,8 @@ if st.button("Check Thought Patterns"):
     if journal_entry:
         st.info("Journal analysis started. This may take 60-120 seconds to complete.")
 
-        completion = get_distortions(journal_entry)
+        response_message = get_distortions(journal_entry)
 
-        response_message = completion["choices"][0]["message"]
         if response_message.get("function_call"):
             data = json.loads(response_message["function_call"]["arguments"])
 

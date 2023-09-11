@@ -4,7 +4,7 @@ import streamlit as st
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def get_distortions(journal_entry):
-    return openai.ChatCompletion.create(
+    completion = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system",
@@ -29,6 +29,9 @@ def get_distortions(journal_entry):
             }
         }]
     )
+
+    return completion["choices"][0]["message"]
+
 
 def categorise_distortions(quotes):
     return openai.ChatCompletion.create(
